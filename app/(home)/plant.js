@@ -1,8 +1,9 @@
+import { clearAuth, getToken, isTokenValid } from '@/auth/token';
 import DeviceCard from '@/components/DeviceCard';
 import { AuthContext } from '@/context/AuthContext';
 import { router } from 'expo-router';
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PlantScreen() {
@@ -17,10 +18,12 @@ export default function PlantScreen() {
 
   const fetchSensorData = async () => {
     try {
-      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3MDUyYmI1MS1lNGMyLTQwNGMtYmNiNC04MWFmMDJlMTYxMGUiLCJpYXQiOjE3NzUwMzY0MDcsImV4cCI6MTc3NTY0MTIwN30.aERX8Mw2BdAEc0lzEmll7QAt7CmUVccVm3TjGoWxJec";
-      if (!token) {
-        Alert.alert('Error', 'Sesi Anda telah habis, silakan login kembali.');
+      const token = await getToken();
+      if (!token || !isTokenValid(token)) {
+        await clearAuth();
+        Alert.alert('Error', 'Sesi Anda telah habis atau token tidak valid. Silakan login kembali.');
         setIsLoading(false);
+        router.replace('/(auth)/login');
         return;
       }
 
@@ -92,8 +95,13 @@ export default function PlantScreen() {
           style={styles.searchInput}
         />
       </View>
-
-      <FlatList
+      {isLoading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={{ marginTop: 10 }}>Memuat data plant...</Text>
+        </View>
+      ) : (
+        <FlatList
         data={filteredDevices}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
@@ -108,6 +116,7 @@ export default function PlantScreen() {
           <Text style={styles.emptyText}>Belum ada plant.</Text>
         }
       />
+      )}
     </SafeAreaView>
   );
 }

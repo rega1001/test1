@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useContext } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '@/context/AuthContext';
+import { useContext } from 'react';
+import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MeScreen() {
   const { user, logout } = useContext(AuthContext);
@@ -9,8 +9,8 @@ export default function MeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Me</Text>
-      <Text style={styles.label}>Email: {user?.email}</Text>
-      <Text style={styles.label}>Role: {user?.role}</Text>
+      <Text style={styles.label}>Email: {user?.email ?? '-'}</Text>
+      <Text style={styles.label}>Phone: {user?.phone ?? '-'}</Text>
 
       <TouchableOpacity style={styles.button} onPress={logout}>
         <Text style={styles.buttonText}>Logout</Text>

@@ -1,6 +1,6 @@
+import { clearAuth, getToken, isTokenValid } from '@/auth/token';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DataScreen = () => {
   // State untuk menampung data yang bentuknya array/daftar (karena limit=10)
@@ -13,21 +13,24 @@ const DataScreen = () => {
 
   const fetchSensorData = async () => {
     try {
-      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3MDUyYmI1MS1lNGMyLTQwNGMtYmNiNC04MWFmMDJlMTYxMGUiLCJpYXQiOjE3NzUwMzY0MDcsImV4cCI6MTc3NTY0MTIwN30.aERX8Mw2BdAEc0lzEmll7QAt7CmUVccVm3TjGoWxJec";
+      const token = await getToken();
 
-      if (!token) {
-        Alert.alert('Error', 'Sesi Anda telah habis, silakan login kembali.');
+      if (!token || !isTokenValid(token)) {
+        await clearAuth();
+        Alert.alert('Error', 'Sesi Anda telah habis atau token tidak valid. Silakan login kembali.');
         setIsLoading(false);
         return;
       }
 
-      const BASE_URL = 'http://localhost:3000';
-      const deviceId = 'BS26040001';
-    //   const category = 'grid';
+      // 2. Siapkan parameter secara dinamis (Best Practice)
+      // Ini lebih baik daripada mengetik URL panjang secara manual
+      const BASE_URL = 'localhost:3000'; // Ganti dengan URL server Anda
+      const deviceId = 1;
+      const category = 'grid';
       const limit = 10;
 
       // Rangkai URL menggunakan Template Literals (tanda backtick `)
-      const endpoint = `${BASE_URL}/api/data/?deviceId=${deviceId}&limit=${limit}`;
+      const endpoint = `${BASE_URL}/api/data/?plantId=${deviceId}&category=${category}&limit=${limit}`;
 
       // 3. Tembak API dengan metode GET dan sertakan Bearer Token
       const response = await fetch(endpoint, {
@@ -62,7 +65,6 @@ const DataScreen = () => {
       <Text style={styles.titleText}>Device: {item.deviceId}</Text>
       {/* Ganti item.value atau item.timestamp sesuai dengan nama kolom di database Anda */}
       <Text style={styles.text}>Kategori: {item.category}</Text>
-      <Text style={styles.text}>Tipe: {item.type || 'N/A'}</Text>
       <Text style={styles.text}>Nilai: {item.value || 'N/A'}</Text> 
     </View>
   );

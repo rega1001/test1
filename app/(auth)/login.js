@@ -1,44 +1,105 @@
 import {
-  View,
+  getUserFromToken,
+  getUserInfo,
+  getValidRememberedToken,
+  saveToken,
+  saveUserInfo,
+  setRememberMe,
+} from '@/auth/token';
+import { AuthContext } from '@/context/AuthContext';
+import { router, Stack } from 'expo-router';
+import { useContext, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { useContext, useState } from 'react';
-import { AuthContext } from '../../context/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function Login() {
-  const { setUser } = useContext(AuthContext);
-
+const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { setUser } = useContext(AuthContext);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const checkStoredToken = async () => {
+      const token = await getValidRememberedToken();
+
+      if (token) {
+        const storedUser = await getUserInfo();
+        if (storedUser) {
+          setUser(storedUser);
+        } else {
+          const tokenUser = getUserFromToken(token);
+          if (tokenUser?.email) {
+            setUser(tokenUser);
+          }
+        }
+
+        router.replace('/(home)/plant');
+      }
+    };
+
+    checkStoredToken();
+  }, []);
+
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Login gagal', 'Email dan password harus diisi.');
+      return;
+    }
+
+    const BASE_URL = 'http://localhost:3000';
+    const endpoint = `${BASE_URL}/api/auth/login`;
+
+    setLoading(true);
+    let loginSuccess = false;
+
     try {
-      setLoading(true);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
-      const dummyUser = {
-        email: email,
-        role: 'admin',
-      };
+      const jsonResponse = await response.json();
 
-      await AsyncStorage.setItem('token', 'dummy-token');
-      setUser(dummyUser);
+      if (response.ok && jsonResponse.status === 'success' && jsonResponse.token) {
+        const userToken = jsonResponse.token;
+        await saveToken(userToken);
+        await setRememberMe(remember);
 
-      router.replace('/(main)/plant');
-    } catch (err) {
-      console.log(err);
+        const userInfo = jsonResponse.user ?? getUserFromToken(userToken) ?? { email };
+        await saveUserInfo(userInfo);
+        setUser(userInfo);
+
+        loginSuccess = true;
+        console.log('Token tersimpan:', userToken);
+      } else {
+        Alert.alert('Login gagal', jsonResponse.message || 'Email atau password salah.');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Login gagal', 'Terjadi kesalahan jaringan. Silakan coba lagi.');
     } finally {
       setLoading(false);
+      if (loginSuccess) {
+        router.replace('/(home)/plant');
+      }
     }
   };
 
@@ -210,3 +271,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
+export default LoginScreen;
